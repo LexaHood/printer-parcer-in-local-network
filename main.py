@@ -2,46 +2,24 @@ import socket
 import threading
 import time
 import subprocess
+from threading import Thread
+import packege_class
 
 start_time = time.time()
 
-mac_printer_list = ['3c:2a:f4', '00:17:c8', 'f4-30-b9'] #brother, koycera, hp
+mac_printer_list = [
+'3c:2a:f4', #Brother
+'00:17:c8', #Koycera
+'f4:30:b9'] #HP
+
 length_mac_lsit = len(mac_printer_list)
 list_printers = []
-
-class net_packege (object):
-
-    def __init__(self, ip = None, mac = None):
-        if ip != None: self.ip = ip
-        else: self.ip = '127.0.0.1'
-        if mac != None: self.mac = mac
-        else: self.mac = '00:00:00:00:00:00'
-
-    def add_ip (self, ip):
-        self.ip = ip
-
-    def add_mac (self, mac):
-        self.mac = mac
-
-    def get_ip (self):
-        return self.ip
-
-    def get_mac (self):
-        return self.mac
-
-    def print_packege (self):
-        print ('ip adress: ', self.ip, '\tmac: ', self.mac)
-
-    pass
 
 def delimiter_mac_address (ip_adress):
     result = subprocess.run(['arp', ip_adress], stdout=subprocess.PIPE)
     tmp = result.stdout.decode('utf-8')
-    #print (tmp)
     index_first = tmp.find("ether") + 8
     index_last = tmp.find(" ", index_first)
-    #print ("index first = ", index_first, "\tindex_last = ", index_last)
-    #print (tmp[index_first:index_last])
     return (tmp[index_first:index_last])
 
 def check_mac (mac_adress):
@@ -56,29 +34,51 @@ def main ():
 
     ip = '10.1.1.'
 
-    def thread_function(adress):
-        mac_adress = delimiter_mac_address(ip + str(adress))
-        res = check_mac(mac_adress)
-        if res == True:
-            list_printers.append(net_packege(ip + str(adress), mac_adress))
-        
-        
+    file = open("printer list.conf", "w", 1 , "UTF-8")
 
-    for adress in range (1, 255, 1):
-
-        thread_function(adress)
-        #potoc = threading.Thread(target=thread_function, args=(adress))
-        #potoc.start()
+    def thread_function(start_adress, end_adress):  
+        for adress in range (start_adress, end_adress, 1):
+            print ('check ip: ', ip, adress)
+            mac_adress = delimiter_mac_address(ip + str(adress))
+            res = check_mac(mac_adress)
+            if res == True:
+                list_printers.append(packege_class.net_packege(ip + str(adress), mac_adress))
+            pass
         pass
+    
+    def thread_launcher():
+        thread1 = Thread(target=thread_function, args=(1, 64))
+        thread2 = Thread(target=thread_function, args=(64, 128))
+        thread3 = Thread(target=thread_function, args=(128, 192))
+        thread4 = Thread(target=thread_function, args=(192, 254))
+
+        thread1.start()
+        thread2.start()
+        thread3.start()
+        thread4.start()
+
+        thread1.join()
+        thread2.join()
+        thread3.join()
+        thread4.join()
+        pass
+
+    thread_launcher()
 
     size = len(list_printers)
     print (size)
     if size != 0:
         for i in range (size):
             list_printers[i].print_packege()
+            file.write(list_printers[i].get_string_to_write)
             pass
         pass
     else: 
         print ("printers not founded")
 
+
+    file.close()
+    pass
+
 main()
+print("--- %s second ---" % (time.time() - start_time))
