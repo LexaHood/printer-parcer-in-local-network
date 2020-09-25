@@ -70,7 +70,7 @@ def main ():
     if size != 0:
         for i in range (size):
             list_printers[i].print_packege()
-            file.write(list_printers[i].get_string_to_write)
+            file.write(list_printers[i].get_string_to_write())
             pass
         pass
     else: 
